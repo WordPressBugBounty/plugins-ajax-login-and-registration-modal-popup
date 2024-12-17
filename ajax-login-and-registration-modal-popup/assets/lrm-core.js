@@ -96,16 +96,16 @@ var LRM = LRM ? LRM : {};
 
 		//$("form.cart").on('submit', signup_selected);
 
-		var handle_event = is_mobile_or_tablet() ? 'touchend' : 'click';
+		//var handle_event = is_mobile_or_tablet() ? 'touchend' : 'click';
 
 		//open sign-up form
 		$(document).on('click', '.lrm-signup', signup_selected);
-		$(document).on(handle_event, '[class*="lrm-register"]', signup_selected);
+		$(document).on('touchend click', '[class*="lrm-register"]', signup_selected);
 		$(document).on('click', '.lrm-switch-to--register', signup_selected);
 
 		//open login-form form
 		$(document).on('click', '.lrm-signin', login_selected);
-		$(document).on(handle_event, '[class*="lrm-login"]', login_selected);
+		$(document).on('touchend click', '[class*="lrm-login"]', login_selected);
 		$(document).on('click', '.lrm-switch-to--login', login_selected);
 
 		$(document).on('click', '.lrm-forgot-password,[data-action="login"] .lrm-form-message a,.lrm-switch-to--reset-password', function (event) {
@@ -114,7 +114,7 @@ var LRM = LRM ? LRM : {};
 		});
 
 		//close modal
-		$('.lrm-user-modal').on('click', function (event) {
+		$('.lrm-user-modal').on('mousedown', function (event) {
 			if ($(event.target).is('.lrm-user-modal') || $(event.target).is('.lrm-close-form')) {
 				// Check reCaptha, etc
 				var can_close = $(document).triggerHandler('lrm/can_close_modal', event);
@@ -201,6 +201,10 @@ var LRM = LRM ? LRM : {};
 				return true;
 			}
 
+			if (event) {
+				event.stopPropagation();
+				event.preventDefault();
+			}
 			/**
 			 * @since 1.34
 			 * this - clicked element
@@ -250,9 +254,6 @@ var LRM = LRM ? LRM : {};
 				}
 			}, 100);
 
-			if (event) {
-				event.preventDefault();
-			}
 			return false;
 		}
 
@@ -261,6 +262,10 @@ var LRM = LRM ? LRM : {};
 				return true;
 			}
 
+			if (event) {
+				event.stopPropagation();
+				event.preventDefault();
+			}
 			/**
 			 * @since 1.34
 			 * this - clicked element
@@ -336,9 +341,6 @@ var LRM = LRM ? LRM : {};
 				$("#signup-password").trigger("keyup");
 			}, 100);
 
-			if (event) {
-				event.preventDefault();
-			}
 			return false;
 		}
 
@@ -459,7 +461,10 @@ var LRM = LRM ? LRM : {};
 								alert(response.data.message);
 							} else {
 								$form.find('input[name="' + response.data.for + '"]').addClass('has-error')
-									  .next('.lrm-error-message').html(response.data.message).addClass('is-visible');
+									// .next('.lrm-error-message') - fix for LastPass Extention
+									.parent()
+									.find('.lrm-error-message')
+									.html(response.data.message).addClass('is-visible');
 								$form.find(".lrm-form-message").removeClass("lrm-is-error").html("");
 
 							}
@@ -541,12 +546,14 @@ var LRM = LRM ? LRM : {};
 				return;
 			}
 
-			if ( !passwordStrength || passwordStrength <= 2 ) {
-				$(".pw-weak").show()
-				$(".pw-checkbox").attr("required", "required");
-			} else {
-				$(".pw-weak").hide()
-				$(".pw-checkbox").attr("required", false);
+			if ( "yes_allow_weak" == LRM.validate_password_strength ) {
+				if (!passwordStrength || passwordStrength <= 2) {
+					$(".pw-weak").show()
+					$(".pw-checkbox").attr("required", "required");
+				} else {
+					$(".pw-weak").hide()
+					$(".pw-checkbox").attr("required", false);
+				}
 			}
 		});
 
@@ -562,7 +569,7 @@ var LRM = LRM ? LRM : {};
 	$.ajaxSetup({
 		dataFilter: function (raw_response, dataType) {
 			// We only want to work with JSON
-			if ('json' !== dataType) {
+			if ('json' !== dataType || !raw_response) {
 				return raw_response;
 			}
 
@@ -647,19 +654,10 @@ var LRM = LRM ? LRM : {};
 	LRM.checkPasswordStrength = function( $pass1, $pass2, $strengthResult ) {
 
 		return LRM.loadPasswordMeter(function() {
-			var pass1 = $pass1.val();
+			var pass1 = $pass1.val().trim();
 			if ( !pass1 ) {
 				$strengthResult.data('status','empty');
-				return;
-			}
-
-			if ( "no" === LRM.validate_password_strength ) {
-				if ( $pass2 && $pass2.val().trim() && $pass2.val() !== $pass1.val() ) {
-					$strengthResult.attr('data-status','short').html(LRM.l10n.passwords_is_mismatch);
-				} else {
-					$strengthResult.attr('data-status', null);
-				}
-				return null;
+				return 0;
 			}
 
 			if (!$pass2) {
@@ -668,10 +666,23 @@ var LRM = LRM ? LRM : {};
 				var pass2 = $pass2.val();
 			}
 
+			if ( "no" === LRM.validate_password_strength ) {
+				if ( $pass2 && pass2 !== pass1 ) {
+					$strengthResult.attr('data-status', 'short').html(LRM.l10n.passwords_is_mismatch);
+					return 5;
+				} else if ( pass1.length < 3 || $pass2 && pass2.length < 3 ) {
+					$strengthResult.attr('data-status','short').html(LRM.l10n.password_is_short);
+					return 1;
+				} else {
+					$strengthResult.attr('data-status', null);
+				}
+				return 0;
+			}
+
 			//$strengthResult.removeClass('short bad good strong');
 
 			// Extend our blacklist array with those from the inputs & site data
-			var blacklistArray = ["querty", "password", "P@ssword1", "132", "123"]
+			var blacklistArray = ["querty", "password", "P@ssword1", "132", "123", "admin", "user"]
 
 			// Get the password strength
 			var strength = 0;
@@ -744,7 +755,7 @@ jQuery.fn.putCursorAtEnd = function () {
 			// ... then use it (Doesn't work in IE)
 			// Double the length because Opera is inconsistent about whether a carriage return is one character or two. Sigh.
 			var len = jQuery(this).val().length * 2;
-			this.trigger('focus');
+			jQuery(this).trigger('focus');
 			this.setSelectionRange(len, len);
 		} else {
 			// ... otherwise replace the contents with itself

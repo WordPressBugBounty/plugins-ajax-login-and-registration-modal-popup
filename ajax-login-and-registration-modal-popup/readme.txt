@@ -1,11 +1,11 @@
 === AJAX Login and Registration modal popup + inline form ===
 Contributors: kaminskym
-Tags: login, registration, register, lost password, modal, popup, ajax, form
+Tags: login, registration, register, lost password, modal, popup, ajax
 Requires at least: 4.1
-Tested up to: 6.5.3
+Tested up to: 6.7.1
 Requires PHP: 5.5
 Stable tag: trunk
-License: GPLv2 or later
+License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Easy to integrate modal with Login and Registration features.
@@ -209,6 +209,14 @@ If you have login issue with Adminize plugin - go to Adminize plugin settings an
 - With Theme my login (TML) plugin (3 Password fields on the Create Account tab, if enable password field in LRM and TML)
 
 == Changelog ==
+
+= VER 2.25 - 15/12/2024 =
+
+- Code review to improve overall security
+- Admin XSS Vulnerability fix (thanks to @vgo0 and WordFence)
+- Tested with WordPress version to 6.7.1
+- Removed Plugin update checked (moved to the Pro version)
+- Fix for the LastPass Chrome extension & login errors
 
 = VER 2.24 - 12/05/2024 =
 
