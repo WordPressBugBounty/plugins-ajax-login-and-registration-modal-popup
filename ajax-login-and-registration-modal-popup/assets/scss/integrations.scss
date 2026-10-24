@@ -1,4 +1,6 @@
 /* integrations.scss */
+@use "functions" as *;
+@use "variables" as *;
 
 .lrm-integrations label {
     font-weight: bold;
@@ -315,7 +317,7 @@ a.jetpack-sso {
 }
 
 #buddypress #register-page {
-    @extend .lrm-fieldset-wrap;
+    @extend .lrm-fieldset-wrap !optional;
 }
 
 /**

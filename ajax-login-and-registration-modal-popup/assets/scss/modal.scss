@@ -1,4 +1,6 @@
 /* modal.scss */
+@use "functions" as *;
+
 .lrm-user-modal {
     position: fixed;
     top: 0;

@@ -175,6 +175,8 @@ class LRM_Core {
         add_action('wp_ajax_nopriv_lrm_signup', array('LRM_AJAX', 'signup'));
         add_action('wp_ajax_nopriv_lrm_lostpassword', array('LRM_AJAX', 'lostpassword'));
         add_action('wp_ajax_nopriv_lrm_password_reset', array('LRM_AJAX', 'password_reset'));
+        add_action('wp_ajax_nopriv_lrm_refresh_nonces', array('LRM_AJAX', 'refresh_nonces'));
+        add_action('wp_ajax_lrm_refresh_nonces', array('LRM_AJAX', 'refresh_nonces'));
 
         //var_dump( function_exists('cptch_login_check') );
         //add_filter('authenticate', 'cptch_login_check', 21, 1);
@@ -225,10 +227,9 @@ class LRM_Core {
 
         /**
          * @since 1.01
+         * Must be printed in Customizer preview too, because icon-font @font-face lives here.
          */
-        if ( !$is_customize_preview ) {
-            require LRM_PATH . 'views/footer_styles.php';
-        }
+        require LRM_PATH . 'views/footer_styles.php';
 
         if ( !$is_customize_preview && is_user_logged_in() ) {
             return;
@@ -257,19 +258,19 @@ class LRM_Core {
         $assets_ver = LRM_ASSETS_VER;
 
         if ( self::is_dev_env() ) {
-            $assets_ver = filemtime(LRM_PATH . 'assets/lrm-core-compiled.css');
+            $assets_ver = filemtime(LRM_PUBLIC_PATH . 'styles-compiled/lrm-core-compiled.css');
         }
-	    wp_enqueue_style('lrm-modal', LRM_URL . 'assets/lrm-core-compiled.css', false, $assets_ver);
+	    wp_enqueue_style('lrm-modal', LRM_PUBLIC_URL . 'styles-compiled/lrm-core-compiled.css', false, $assets_ver);
 
 	    LRM_Skins::i()->load_current_skin_assets();
-	    //wp_enqueue_style('lrm-fonts', LRM_URL . 'assets/fonts.css', false, LRM_ASSETS_VER);
+	    //wp_enqueue_style('lrm-fonts', LRM_PUBLIC_URL . 'styles-compiled/fonts.css', false, LRM_ASSETS_VER);
 
 	    $required_scripts = array('jquery');
         if ( self::is_dev_env() ) {
-            $assets_ver = filemtime(LRM_PATH . 'assets/lrm-core.js');
+            $assets_ver = filemtime(LRM_PUBLIC_PATH . 'js-compiled/lrm-core.js');
         }
 
-	    wp_enqueue_script('lrm-modal', LRM_URL . 'assets/lrm-core.js', $required_scripts, $assets_ver, true);
+	    wp_enqueue_script('lrm-modal', LRM_PUBLIC_URL . 'js-compiled/lrm-core.js', $required_scripts, $assets_ver, true);
 	    //wp_enqueue_style('lrm-modal-skin', LRM_URL . 'assets/lrm-skin.css', false, LRM_ASSETS_VER);
 
         $ajax_url = add_query_arg( 'lrm', '1', site_url('/') );
@@ -307,6 +308,7 @@ class LRM_Core {
             //'ajax_url'           => add_query_arg( 'lrm', '1', admin_url('admin-ajax.php') ),
             'is_user_logged_in'  => is_user_logged_in(),
             'reload_after_login' => LRM_Settings::get()->setting('general/registration/reload_after_login'),
+            'is_wp_cache'       => defined('WP_CACHE') ? 1 : 0,
             'selectors_mapping'  => array(
                 'login'     => stripcslashes( LRM_Settings::get()->setting('advanced/selectors_mapping/login') ),
                 'register'  => stripcslashes( LRM_Settings::get()->setting('advanced/selectors_mapping/register') ),

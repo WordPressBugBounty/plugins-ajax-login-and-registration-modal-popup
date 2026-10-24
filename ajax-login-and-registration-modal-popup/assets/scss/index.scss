@@ -6,11 +6,10 @@
 
 // Look on also for future: https://css-tricks.com/snippets/sass/mixin-manage-breakpoints/
 
-@import "functions";
-@import "modal";
-@import "form";
-@import "loader";
-@import "helpers";
-@import "integrations";
-@import "checkbox"; // 1/03/2019
-@import "./../scss-fonts/fonts"; // 06/05/2020
+@use "modal";
+@use "form";
+@use "loader";
+@use "helpers";
+@use "integrations";
+@use "checkbox"; // 1/03/2019
+@use "./../scss-fonts/fonts"; // 06/05/2020

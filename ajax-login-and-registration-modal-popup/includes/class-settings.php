@@ -32,8 +32,8 @@ class LRM_Settings {
         // register menu as always
         add_action( 'admin_menu', array( $this, 'register_menu' ) );
 
-        // register some settings
-        add_action( 'init', array( $this, 'register_settings' ) );
+        // Register settings after skins are loaded on init by Free/Pro bootstraps.
+        add_action( 'init', array( $this, 'register_settings' ), 20 );
 
         add_action( 'admin_notices', array( $this, 'beg_for_review' ) );
 
@@ -86,6 +86,7 @@ class LRM_Settings {
         }
 
         if ( isset($_GET['action']) && $_GET['action'] === 'lrm_reset_translations' && current_user_can('manage_options') ) {
+            check_admin_referer( 'lrm-reset-translations' );
             $this->_reset_translations();
         }
 
@@ -167,7 +168,7 @@ class LRM_Settings {
 
         // Update notice for 1.18 > 1.20
 
-        if ( true || ! get_option( 'lrm_beg_message' ) ) {
+        if ( ! get_option( 'lrm_beg_message' ) ) {
             echo '<div class="notice notice-info notification-notice"><p>';
 
             printf( __( 'Do you like "Login and Register Modal" plugin? Please consider giving it a %1$sreview%2$s', 'ajax-login-and-registration-modal-popup' ), '<a href="https://wordpress.org/support/plugin/ajax-login-and-registration-modal-popup/reviews/#new-post" class="button button-secondary" target="_blank">⭐⭐⭐⭐⭐ ', '</a>' );
@@ -480,7 +481,7 @@ class LRM_Settings {
                 ),
                 'default'     => 'plain',
                 'description' => sprintf(
-                    __('To enable support of html tags - use text/html email format. More - <a href="%1$s" target="_blank">%1$s</a><br/> Option "use WooCommerce template" is experimental feature and could have issues with some WC plugins.', 'ajax-login-and-registration-modal-popup' ),
+                    __('To enable support of HTML tags - use text/html email format. More - <a href="%1$s" target="_blank">%1$s</a><br/> Option "use WooCommerce template" is experimental feature and could have issues with some WC plugins.', 'ajax-login-and-registration-modal-popup' ),
                     'http://blog.cakemail.com/html-vs-plain-text/'
                 ),
                 'render'      => array( new CoreFields\Select(), 'input' ),
@@ -1095,6 +1096,8 @@ class LRM_Settings {
                     'options'     => array(
                         ''               => '= Please select =',
                         'reCaptcha'      => 'reCaptcha (api keys are required) [PRO]',
+                        'Turnstile'      => 'Turnstile by Cloudflare (api keys are required) [PRO]',
+                        'hCaptcha'       => 'hCaptcha (api keys are required) [PRO]',
                         'MatchCaptcha'    => 'MatchCaptcha (less secure but faster) [PRO]',
                     ),
                 ),
@@ -1161,7 +1164,94 @@ class LRM_Settings {
                 'render'      => array( new LRM_Field_Password(), 'input' ),
                 'sanitize'    => array( new LRM_Field_Password(), 'sanitize' ),
             ) )
+            ->add_field( array(
+                'slug'        => 'threshold',
+                'name'        => __('Score threshold ', 'ajax-login-and-registration-modal-popup' ),
+                'default'     => '0.5',
+
+                'addons'      => array(
+                    'options'     => array(
+                        '0.2'        => '0.2',
+                        '0.3'        => '0.3',
+                        '0.4'        => '0.4',
+                        '0.5'        => '0.5',
+                        '0.6'        => '0.6',
+                        '0.7'        => '0.7',
+                        '0.8'        => '0.8',
+                        '0.9'        => '0.9',
+                        '1.0'        => '1.0',
+                    ),
+                ),
+
+                'description' => 'reCAPTCHA v3 returns a score (1.0 is very likely a good interaction, 0.0 is very likely a bot). Based on the score, you can take variable action in the context of your site. <a target="_blank" href="https://developers.google.com/recaptcha/docs/v3#interpreting_the_score">https://developers.google.com/recaptcha/docs/v3#interpreting_the_score</a>',
+                'render'      => array( new CoreFields\Select(), 'input' ),
+                'sanitize'    => array( new CoreFields\Select(), 'sanitize' ),
+            ) )
             ->description( __('Find them here: https://www.google.com/recaptcha/admin', 'ajax-login-and-registration-modal-popup' ) );
+
+        // hCaptcha settings (FREE settings, PRO implementation)
+        $SECURITY_SECTION->add_group( __( 'hCaptcha Api Keys', 'ajax-login-and-registration-modal-popup' ), 'hcaptcha' )
+            ->add_field( array(
+                'slug'        => 'type',
+                'name'        => __('hCaptcha type:', 'ajax-login-and-registration-modal-popup'),
+                'addons'      => array(
+                    'options'     => array(
+                        'inline'        => 'Inline',
+                        'invisible'     => 'Invisible',
+                    ),
+                ),
+                'default'     => '',
+                'description' => __('Please make sure that keys are created for the selected hCaptcha type!', 'ajax-login-and-registration-modal-popup' ),
+                'render'      => array( new CoreFields\Select(), 'input' ),
+                'sanitize'    => array( new CoreFields\Select(), 'sanitize' ),
+            ) )
+            ->add_field( array(
+                'slug'        => 'site_key',
+                'name'        => __('Site key', 'ajax-login-and-registration-modal-popup' ),
+                'default'     => '',
+                'render'      => array( new LRM_Field_Password(), 'input' ),
+                'sanitize'    => array( new LRM_Field_Password(), 'sanitize' ),
+            ) )
+            ->add_field( array(
+                'slug'        => 'secret_key',
+                'name'        => __('Secret key', 'ajax-login-and-registration-modal-popup' ),
+                'default'     => '',
+                'render'      => array( new LRM_Field_Password(), 'input' ),
+                'sanitize'    => array( new LRM_Field_Password(), 'sanitize' ),
+            ) )
+            ->description( 'Find them here: <a href="https://dashboard.hcaptcha.com/sites/" target="_blank">https://dashboard.hcaptcha.com/sites</a>' );
+
+        // Turnstile settings (FREE settings, PRO implementation)
+        $SECURITY_SECTION->add_group( __( 'Turnstile Api Keys', 'ajax-login-and-registration-modal-popup' ), 'turnstile' )
+            ->add_field( array(
+                'slug'        => 'type',
+                'name'        => __('Turnstile type:', 'ajax-login-and-registration-modal-popup'),
+                'addons'      => array(
+                    'options'     => array(
+                        'inline'        => 'Inline',
+                        'invisible'     => 'Invisible',
+                    ),
+                ),
+                'default'     => '',
+                'description' => __('Please make sure that keys are created for the selected Turnstile type!', 'ajax-login-and-registration-modal-popup' ),
+                'render'      => array( new CoreFields\Select(), 'input' ),
+                'sanitize'    => array( new CoreFields\Select(), 'sanitize' ),
+            ) )
+            ->add_field( array(
+                'slug'        => 'site_key',
+                'name'        => __('Site key', 'ajax-login-and-registration-modal-popup' ),
+                'default'     => '',
+                'render'      => array( new LRM_Field_Password(), 'input' ),
+                'sanitize'    => array( new LRM_Field_Password(), 'sanitize' ),
+            ) )
+            ->add_field( array(
+                'slug'        => 'secret_key',
+                'name'        => __('Secret key', 'ajax-login-and-registration-modal-popup' ),
+                'default'     => '',
+                'render'      => array( new LRM_Field_Password(), 'input' ),
+                'sanitize'    => array( new LRM_Field_Password(), 'sanitize' ),
+            ) )
+            ->description( 'Find them here: <a href="https://dash.cloudflare.com/?to=/:account/turnstile" target="_blank" rel="noopener">https://dash.cloudflare.com → Turnstile</a>' );
 
 	    $SECURITY_SECTION->add_group( __( 'Match Captcha', 'ajax-login-and-registration-modal-popup' ), 'match_captcha' )
 		    ->description('Label/error messages can be changed on the Expressions > PRO tab');
@@ -1204,12 +1294,12 @@ class LRM_Settings {
     }
 
     public function settings_enqueue_scripts() {
-        wp_enqueue_script( 'lrm-admin', LRM_URL . 'assets/lrm-admin.js', array( 'jquery', 'jquery-ui-sortable' ), LRM_VERSION, true );
+        wp_enqueue_script( 'lrm-admin', LRM_PUBLIC_URL . 'js-compiled/lrm-admin.js', array( 'jquery', 'jquery-ui-sortable' ), LRM_VERSION, true );
 	    wp_localize_script('lrm-admin', 'LRM_ADMIN', array(
 	    	'ajax_url' => admin_url('admin-ajax.php'),
 	    ));
 
-        wp_enqueue_style('lrm-admin-css', LRM_URL . '/assets/lrm-core-settings.css', false, LRM_ASSETS_VER);
+        wp_enqueue_style('lrm-admin-css', LRM_PUBLIC_URL . 'styles-compiled/lrm-core-settings.css', false, LRM_ASSETS_VER);
     }
 
     /**

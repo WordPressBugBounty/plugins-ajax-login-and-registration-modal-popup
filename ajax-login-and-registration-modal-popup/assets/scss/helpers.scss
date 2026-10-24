@@ -1,4 +1,7 @@
 /* helpers.scss */
+@use "functions" as *;
+@use "variables" as *;
+
 html.html-has-lrm {
     overflow: auto !important;
 }
@@ -48,4 +51,3 @@ html.html-has-lrm {
         margin: $fieldset-margin-tb 0;
     }
 }
-
